@@ -5,7 +5,7 @@
 然而在具体的操作系统上线程实现各自不同, 包括linux线程设计不完全满足posix标准：
 linux把所有的线程都当作进程实现, 线程看起来就像普通进程, 只是该进程和其他进程共享资源(如地址空间), 与windows或Solaris实现差异很大。
 Linux线程实现是在内核外进行的, 核内提供的是创建进程的接口do_fork()。内核提供了两个系统调用__clone()和fork()，最终都调用到do_fork();
-do_fork()提供了很多参数, 包括CLONE_VM(共享内存空间), CLONE_FS(共享文件系统信息), CLONE_FILES(共享文件描述符表), CLONE_SIGHAND(共享信号句柄表)和CLONE_PID(共享进程ID，仅对核内进程，即0号进程有效）
+do_fork()提供了很多参数, 包括CLONE_VM(共享内存空间), CLONE_FS(共享文件系统信息),  CLONE_FILES(共享文件描述符表), CLONE_SIGHAND(共享信号句柄表)和CLONE_PID(共享进程ID，仅对核内进程，即0号进程有效）
 当使用fork系统调用产生多进程时，内核调用do_fork()不使用任何共享属性，进程拥有独立的运行环境。
 当使用pthread_create()来创建线程时，则最终设置了所有这 些属性来调用__clone()，而这些参数又全部传给核内的do_fork()，从而创建的”进程”拥有共享的运行环境，只有栈是独立的，由 __clone()传入。
 即：Linux下不管是多线程编程还是多进程编程，最终都是用do_fork实现的 多进程编程，只是进程创建时的参数不同，从而导致有不同的共享环境。
@@ -23,12 +23,15 @@ Linux的”线程”和”进程”实际上处于一个调度层次，共享一
 getconf GNU_LIBPTHREAD_VERSION  
 NPTL 2.19
 
-
+Linux线程的实现在2.4以前是LinuxThreads, 从2.5开始使用NPTL, 一下是一些区别:
+1 线程同步和互斥的实现
+1.1 LinuxThread 
+2 管理线程的实现
+3 
 由于异步信号是内核以进程为单位分发的，而LinuxThreads的每个线程对内核来说都是一个进程，且没有实现”线程组”，因 此，某些语义不符合POSIX标准，比如没有实现向进程中所有线程发送信号，README对此作了说明。
 LinuxThreads中的线程同步很大程度上 是建立在信号基础上的，这种通过内核复杂的信号处理机制的同步方式，效率一直是个问题。LinuxThreads 的问题，特别是兼容性上的问题，严重阻碍了Linux上的跨平台应用（如Apache）采用多线程设计，
-从而使得Linux上的线程应用一直保持在比较低 的水平。在Linux社区中，已经有很多人在为改进线程性能而努力，其中既包括用户级线程库，也包括核心级和用户级配合改进的线程库。
-目前最为人看好的有 两个项目，一个是RedHat公司牵头研发的NPTL（Native Posix Thread Library），另一个则是IBM投资开发的NGPT（Next Generation Posix Threading），二者都是围绕完全兼容POSIX 1003.1c，
-同时在核内和核外做工作以而实现多对多线程模型。这两种模型都在一定程度上弥补了LinuxThreads的缺点，且都是重起炉灶全新设 计的。
+从而使得Linux上的线程应用一直保持在比较低 的水平。
+
 
  
 
